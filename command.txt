@@ -1,0 +1,4 @@
+python fish.py --o  C:\Users\Awinlab\Desktop\zebra_fish\origin\test --m C:\Users\Awinlab\Desktop\zebra_fish\mask\test --j C:\Users\Awinlab\Desktop\zebra_fish\result\test
+--o : 原圖資料夾路徑
+--m : mask資料夾路徑
+--j : 輸出json檔的路徑
