@@ -7,6 +7,7 @@ import base64
 import argparse
 import os
 
+# Convert an Image to Base64.
 def base64encode_img(image_path):
     src_image = Image.open(image_path)
     output_buffer = io.BytesIO()
@@ -17,31 +18,27 @@ def base64encode_img(image_path):
 
 def readFile(originPath,maskPath):
     originImgList = os.listdir(originPath)
-    originImgList.sort(key=lambda x:int(x.split(' ')[7][:-4]))#倒着数第四位'.'为分界线，按照‘.’左边的数字从小到大排序
+    originImgList.sort(key=lambda x:int(x.split(' ')[7][:-4]))
     maskImgList = os.listdir(maskPath)
-    maskImgList.sort(key=lambda x:int(x.split(' ')[7][:-8]))#倒着数第四位'.'为分界线，按照‘.’左边的数字从小到大排序
+    maskImgList.sort(key=lambda x:int(x.split(' ')[7][:-8]))
     resultMap = {}
     imgMap = {}
     for o,m in zip(originImgList,maskImgList):
         origin_file = os.path.join(originPath,o)
         file = os.path.join(maskPath,m)
         res,img = process(origin_file,file)
-        print(o)
         resultMap[o] = res
         imgMap[o] = img
     print('finished processing')
     return resultMap,imgMap
 
 def process(origin,mask):
-    #print(mask)
     file = mask
     origin_file  = origin
     image = cv2.imread(file)
     origin_img = cv2.imread(origin_file)
-    #gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    #blurred = cv2.GaussianBlur(gray, (31, 31), 0)
     edged = cv2.Canny(image, 10, 20)
-    row_indexes, col_indexes = np.nonzero(edged)
+    row_indexes, col_indexes = np.nonzero(edged) # Get coordinate of edge from pixels with nonzero value 
     tempList = []
     for i in range(0,len(row_indexes)):
         tempList.append([int(col_indexes[i]),int(row_indexes[i])])
@@ -67,7 +64,7 @@ def process(origin,mask):
     img = cv2.polylines(image, [pts], False, (0,255,255))
     return outputDict,img
 
-
+# Output json and png files
 def writeFile(path,resultMap,imgMap):
     print('writting..')
     for k,v in resultMap.items():
@@ -77,12 +74,10 @@ def writeFile(path,resultMap,imgMap):
         cv2.imwrite(path + '/' + k + '.png',v) 
 
 def main():
-    #建立ArgumentParser物件，並給定description
     parser = argparse.ArgumentParser()
-    parser.add_argument('--o',  type = str , required= True, help = '原圖路徑')
-    parser.add_argument('--m',  type = str , required= True, help = 'mask路徑')
-    parser.add_argument('--j',  type = str , required= True, help = '輸出json路徑')
-    #ArgumentParser物件的parse_args()方法用於解析已傳入之參數值
+    parser.add_argument('--o',  type = str , required= True, help = 'origin image path')
+    parser.add_argument('--m',  type = str , required= True, help = 'mask path')
+    parser.add_argument('--j',  type = str , required= True, help = 'output path')
     args = parser.parse_args()
     originPath = args.o
     maskPath = args.m
@@ -91,8 +86,3 @@ def main():
     writeFile(jsonPath,resultMap,imgMap)
 
 main()
-'''cv2.namedWindow('My Image', cv2.WINDOW_NORMAL)
-cv2.imwrite('out.png',edged)
-cv2.imshow('My Image', edged)
-cv2.waitKey(0)
-cv2.destroyAllWindows()'''
