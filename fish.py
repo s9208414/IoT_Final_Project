@@ -15,6 +15,7 @@ def base64encode_img(image_path):
     byte_data = output_buffer.getvalue()
     base64_str = base64.b64encode(byte_data).decode('utf-8')
     return base64_str
+
 # Read origin image and mask.
 def readFile(originPath,maskPath):
     originImgList = os.listdir(originPath)
