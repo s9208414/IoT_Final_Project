@@ -7,7 +7,7 @@ import base64
 import argparse
 import os
 
-# Convert an Image to Base64.
+# Convert an image to Base64.
 def base64encode_img(image_path):
     src_image = Image.open(image_path)
     output_buffer = io.BytesIO()
@@ -15,7 +15,7 @@ def base64encode_img(image_path):
     byte_data = output_buffer.getvalue()
     base64_str = base64.b64encode(byte_data).decode('utf-8')
     return base64_str
-# Read origin image and mask
+# Read origin image and mask.
 def readFile(originPath,maskPath):
     originImgList = os.listdir(originPath)
     originImgList.sort(key=lambda x:int(x.split(' ')[7][:-4]))
@@ -64,7 +64,7 @@ def process(origin,mask):
     img = cv2.polylines(image, [pts], False, (0,255,255))
     return outputDict,img
 
-# Output json and png files
+# Output json and png files.
 def writeFile(path,resultMap,imgMap):
     print('writting..')
     for k,v in resultMap.items():
