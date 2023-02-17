@@ -6,6 +6,8 @@ import io
 import base64
 import argparse
 import os
+import math 
+from math import cos,sin,radians,degrees,atan2,sqrt
 
 # Convert an image to Base64.
 def base64encode_img(image_path):
@@ -23,56 +25,74 @@ def readFile(originPath,maskPath):
     maskImgList = os.listdir(maskPath)
     maskImgList.sort(key=lambda x:int(x.split(' ')[7][:-8]))
     resultMap = {}
-    imgMap = {}
     for o,m in zip(originImgList,maskImgList):
         origin_file = os.path.join(originPath,o)
         file = os.path.join(maskPath,m)
-        res,img = process(origin_file,file)
+        res = process(origin_file,file)
         resultMap[o] = res
-        imgMap[o] = img
     print('finished processing')
-    return resultMap,imgMap
+    return resultMap
 
 def process(origin,mask):
     file = mask
     origin_file  = origin
     image = cv2.imread(file)
-    origin_img = cv2.imread(origin_file)
     edged = cv2.Canny(image, 10, 20)
-    row_indexes, col_indexes = np.nonzero(edged) # Get coordinate of edge from pixels with nonzero value 
-    tempList = []
+    row_indexes, col_indexes = np.nonzero(edged) # Get coordinate of edge from pixels with nonzero value.
+    tempList = [] # Store the edged pixel we have not visted.
+    tabuList = [] # Store the edged pixel we have visted.
+    resultList = [] # Store sorted coordinate of edged pixel.
     for i in range(0,len(row_indexes)):
         tempList.append([int(col_indexes[i]),int(row_indexes[i])])
+
+    # Select first edged pixel to find other edged pixel which distance is the nearest to first one.
+    tabuList.append(tempList[0])
+    tempList.remove(tempList[0])
+    while(len(tempList)>0):
+        tempDis,tempCoordAndDis = findTheSmallestDis(tempList,tabuList)
+        list_of_key = list(tempCoordAndDis.keys())
+        list_of_value = list(tempCoordAndDis.values())
+        idx = list_of_value.index(tempDis[0]) # Get the coordinate corresponding to nearest edged pixel.
+        tabuList.append(json.loads(list_of_key[idx]))
+        tempList.remove(json.loads(list_of_key[idx]))
+    resultList = tabuList # Sorted list of coordinate.
     imageData = base64encode_img(origin_file)
-    maskData = base64encode_img(file)
     outputDict = {
         "version": "5.0.1",
         "flags": {},
         "shapes": [{
             "label": "spine",
-            "points":tempList,
+            "points":resultList,
             "group_id": None,
             "shape_type": "polygon",
             "flags": {}
         }],
         "imagePath": file,
-        "imageData": maskData,
+        "imageData": imageData,
         "imageHeight": image.shape[1],
         "imageWidth": image.shape[0]
     }
-    pts = np.array(tempList)
-    pts = pts.reshape((-1, 1, 2))
-    img = cv2.polylines(image, [pts], False, (0,255,255))
-    return outputDict,img
 
-# Output json and png files.
-def writeFile(path,resultMap,imgMap):
+    return outputDict
+
+# Output json files.
+def writeFile(path,resultMap):
     print('writting..')
     for k,v in resultMap.items():
         with open(path + '/' + k + '.json', 'w') as f:
             json.dump(v, f, indent = 4)   
-    for k,v in imgMap.items():
-        cv2.imwrite(path + '/' + k + '.png',v) 
+
+# Calculate Euclidean distance between the last element of "tabuList" and all elements in pixelList(tempList),create a map which key and value is coordinate and value respectively,and sort the disList ascendingly.
+def findTheSmallestDis(pixelList,tabuList):
+    disList = []
+    coordCorrespondToDis = {}
+    for i in range(0,len(pixelList)):
+        dis = math.sqrt(math.pow(tabuList[-1][0] - pixelList[i][0],2) + math.pow(tabuList[-1][1] - pixelList[i][1],2))
+        disList.append(dis)
+        coordCorrespondToDis[str(pixelList[i])] = dis
+    disList.sort()
+    return disList,coordCorrespondToDis
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -83,7 +103,7 @@ def main():
     originPath = args.o
     maskPath = args.m
     jsonPath = args.j
-    resultMap,imgMap = readFile(originPath,maskPath)
-    writeFile(jsonPath,resultMap,imgMap)
+    resultMap = readFile(originPath,maskPath)
+    writeFile(jsonPath,resultMap)
 
 main()
